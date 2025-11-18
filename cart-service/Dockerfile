@@ -1,48 +1,36 @@
-#gunakan image resmi dari php + composer
-
+# ============================================
+# Cart Service (Laravel Lumen) - Dockerfile
+# ============================================
 FROM php:8.2-cli
 
-#install dependensi yang dibutuhkan (git, unzip, libpq-dev, dll)
-
+# System dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
-    libpq-dev \
+    git unzip zip libzip-dev libpng-dev libonig-dev libxml2-dev \
     && docker-php-ext-install pdo pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 
-#install composer
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-#set working directory
+# Working dir di dalam container
 WORKDIR /var/www
 
-# -------------------------------------------------
-# 1) Buat project Lumen ke folder /var/www/src
-#    (akan skip jika sudah ada composer.json di /var/www/src)
-# -------------------------------------------------
-# Salin file "penanda" supaya layer cache stabil
-COPY composer.json /var/www/composer.bootstrap.json
-RUN if [ ! -f /var/www/src/composer.json ]; then \
-      composer create-project --prefer-dist laravel/lumen:^10.0 src ; \
-    fi
+# 1) Generate project Lumen di /var/www/src
+#    (ini yang bikin folder public/, bootstrap/, dll)
+RUN composer create-project --prefer-dist laravel/lumen:^10.0 src
 
-# -------------------------------------------------
-# 2) Salin file yang kita override (env & routes)
-# -------------------------------------------------
-# .env untuk Lumen (akan ditempatkan di /var/www/src/.env)
-COPY .env /var/www/src/.env
+# Pindah ke folder lumen
+WORKDIR /var/www/src
 
-# Pastikan direktori routes ada (harus ada dari Lumen)
-# Lalu timpa web.php dengan punya kita
-COPY src/routes/web.php /var/www/src/routes/web.php
+# 2) Copy file konfigurasi & routes dari host ke project lumen
+#    Host: cart-service/.env        -> Container: /var/www/src/.env
+COPY .env .env
 
-# Permissions (opsional)
-RUN chown -R www-data:www-data /var/www/src
+#    Host: cart-service/routes/web.php -> Container: /var/www/src/routes/web.php
+COPY routes/web.php routes/web.php
 
-#expose port 8000
+# Expose port
 EXPOSE 8000
 
-#jalankan aplikasi lumen
+# Jalankan Lumen dengan built-in server
 CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
