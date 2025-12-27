@@ -4,9 +4,33 @@ services:
   product-service:
     build: ./product-service
     ports:
-      - "3000:3000"
+      - "${PRODUCT_SERVICE_PORT}:3000"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${PRODUCT_DB_HOST}
+      - DB_NAME=${PRODUCT_DB_NAME}
+      - DB_USER=${PRODUCT_DB_USER}
+      - DB_PASSWORD=${PRODUCT_DB_PASSWORD}
     container_name: product-service
     restart: always
+    depends_on:
+      - product-db
+    networks:
+      - default
+
+  product-db:
+    image: mysql:8.0.36
+    env_file:
+      - .env
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD : ${PRODUCT_DB_PASSWORD}
+      MYSQL_DATABASE : ${PRODUCT_DB_NAME}
+    volumes:
+      - product-db-data:/var/lib/mysql
+    networks:
+      - default
 
   cart-service:
     build: ./cart-service
@@ -14,6 +38,8 @@ services:
       - "8000:8000"
     container_name: cart-service
     restart: always
+    networks:
+      - default
 
   review-service:
     build: ./review-service
@@ -21,3 +47,22 @@ services:
       - "5002:5002"
     container_name: review-service
     restart: always
+    networks:
+      - default
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "4000:4000"
+    container_name: user-service
+    restart: always
+    networks:
+      - default
+
+volumes:
+  product-db-data:
+
+networks:
+  default:
+    driver: bridge
+    enable_ipv6: false

@@ -4,8 +4,9 @@ FROM node:18-alpine
 #set working directory di dalam container
 WORKDIR /app
 
-#copy package.json ke dalam container
-COPY package.json . /app/
+#copy package.json dan package-lock.json ke dalam container
+COPY package.json ./
+COPY package-lock.json ./
 
 #install dependencies
 RUN npm install
