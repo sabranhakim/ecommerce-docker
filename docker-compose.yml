@@ -1,68 +1,58 @@
-version: '3.9'
-
+version: '3.8'
 services:
   product-service:
     build: ./product-service
     ports:
-      - "${PRODUCT_SERVICE_PORT}:3000"
-    env_file:
-      - .env
+      - "3000:3000"
     environment:
-      - DB_HOST=${PRODUCT_DB_HOST}
-      - DB_NAME=${PRODUCT_DB_NAME}
-      - DB_USER=${PRODUCT_DB_USER}
-      - DB_PASSWORD=${PRODUCT_DB_PASSWORD}
-    container_name: product-service
-    restart: always
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: products
     depends_on:
-      - product-db
-    networks:
-      - default
-
-  product-db:
-    image: mysql:8.0.36
-    env_file:
-      - .env
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD : ${PRODUCT_DB_PASSWORD}
-      MYSQL_DATABASE : ${PRODUCT_DB_NAME}
-    volumes:
-      - product-db-data:/var/lib/mysql
-    networks:
-      - default
-
-  cart-service:
-    build: ./cart-service
-    ports:
-      - "8000:8000"
-    container_name: cart-service
-    restart: always
-    networks:
-      - default
-
-  review-service:
-    build: ./review-service
-    ports:
-      - "5002:5002"
-    container_name: review-service
-    restart: always
-    networks:
-      - default
+      - mysql
 
   user-service:
     build: ./user-service
     ports:
       - "4000:4000"
-    container_name: user-service
-    restart: always
-    networks:
-      - default
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/users
+      JWT_SECRET: your_super_secret_jwt_key
+    depends_on:
+      - postgres
+
+  cart-service:
+    build: ./cart-service
+    ports:
+      - "8000:8000"
+    environment:
+      PRODUCT_SERVICE_URL: http://product-service:3000
+    depends_on:
+      - product-service
+
+  review-service:
+    build: ./review-service
+    ports:
+      - "5000:5000"
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: products
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
 volumes:
-  product-db-data:
-
-networks:
-  default:
-    driver: bridge
-    enable_ipv6: false
+  mysql-data:
+  postgres-data:

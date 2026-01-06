@@ -2,7 +2,10 @@
     "name" : "ecommerce/cart-service",
     "description" : "A service for managing shopping carts with Laravel Lumen",
     "type": "project",
-    "require": {},
+    "require": {
+        "guzzlehttp/guzzle": "^7.10",
+        "laravel/lumen-framework": "^11.2"
+    },
     "license": "MIT",
     "autoload": {
         "psr-4": {
