@@ -2,7 +2,11 @@ from pymongo import MongoClient
 import os
 import time
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:admin123@mongo:27017/")
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb://admin:admin123@mongo:27017/reviewdb?authSource=admin"
+)
+
 
 def connect_with_retry():
     retries = 5

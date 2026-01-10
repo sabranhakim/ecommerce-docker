@@ -37,6 +37,27 @@ const User = sequelize.define('User', {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
+const verifyToken = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+        return res.status(403).send('A token is required for authentication');
+    }
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+    } catch (err) {
+        return res.status(401).send('Invalid Token');
+    }
+    return next();
+};
+
+const isAdmin = (req, res, next) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).send('Require Admin Role!');
+    }
+    return next();
+};
+
 app.post('/register', async (req, res) => {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
@@ -73,13 +94,13 @@ app.post('/login', async (req, res) => {
         const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
             expiresIn: 86400 // 24 hours
         });
-        res.status(200).json({ auth: true, token });
+        res.status(200).json({ auth: true, token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
         res.status(500).send('Error logging in');
     }
 });
 
-app.get('/users', async (req, res) => {
+app.get('/users', [verifyToken, isAdmin], async (req, res) => {
     try {
         const users = await User.findAll({ attributes: ['id', 'name', 'email', 'role'] });
         res.json(users);
@@ -88,7 +109,26 @@ app.get('/users', async (req, res) => {
     }
 });
 
-app.get('/users/:id', async (req, res) => {
+app.post('/users', [verifyToken, isAdmin], async (req, res) => {
+    const { name, email, password, role } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).send('Name, email, and password are required');
+    }
+    try {
+        const hashedPassword = bcrypt.hashSync(password, 8);
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            role: role || 'customer'
+        });
+        res.status(201).json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    } catch (error) {
+        res.status(500).send('Error creating user');
+    }
+});
+
+app.get('/users/:id', verifyToken, async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id, { attributes: ['id', 'name', 'email', 'role'] });
         if (!user) return res.status(404).send('User not found');
